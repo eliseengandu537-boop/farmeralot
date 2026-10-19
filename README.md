@@ -49,11 +49,27 @@ The `preview`, `build:preview`, and `start:preview` commands deliberately force 
 
 Live catalogue requests have timeouts and recoverable error screens. Basket and checkout requests pass through `/api/wc/*`; the browser keeps WooCommerce's cart token and nonce. PayFast appears only when the live store reports a compatible payment method. Account login and order history stay on the existing store. Verify the live catalogue, basket and payment configuration before accepting customer orders.
 
-## AI assistant deferred
+## Assistant and lead presentation
 
-The AI assistant is hidden in presentation mode and whenever no server-side `OPENAI_API_KEY` exists. The floating quote button opens the working enquiry page. AI and automatic email delivery have been left for later as requested.
+The floating **Get your quote** button opens the Farmeralot assistant on every page. `ASSISTANT_MODE=demo` is the default, independently of the store's catalogue mode. The presentation is clearly labelled: replies follow a guided sequence, do not call live AI, and never send emails or save leads. No API key is required for this demo.
 
-Existing assistant/email API routes remain in the project, but are not part of the presentation flow. Automatic delivery would require Resend settings (`RESEND_API_KEY`, a verified `RESEND_FROM_EMAIL`, and `SALES_EMAIL_TO`). Do not put private keys in `NEXT_PUBLIC_` variables. Before making those endpoints public, replace their development-only in-process rate limits with persistent limits.
+Presentation walkthrough:
+
+1. Click **Get your quote**, then describe the part or farm supply needed.
+2. Enter a town/suburb and province, name, optional company/farm, email and phone number. Use sample details.
+3. Review and edit the populated form, then click **Preview lead email**.
+4. Show the customer, company, location, contact details, enquiry, summary and routing information in the resulting email preview. It is addressed to `eliseenweb@gmail.com` by default.
+5. Download the labelled HTML sample to show the client, or copy the lead summary. No message is sent by either action. **Start another enquiry** clears the chat and entered details; reloading also clears them. Closing/reopening the assistant retains the current draft in memory.
+
+The demo is enforced on the server even if API credentials are present. The live assistant endpoint rejects requests in demo mode, and the lead endpoint returns `status: "preview", sent: false`. The standalone enquiry page still supports the separate manual email-app flow described above.
+
+Live AI/email remains deferred for the presentation. Later activation requires `ASSISTANT_MODE=live`, a server-side `OPENAI_API_KEY`, `RESEND_API_KEY`, verified `RESEND_FROM_EMAIL`, and `SALES_EMAIL_TO`. Rebuild and restart after changing modes. Never put private keys in `NEXT_PUBLIC_` variables. Before a public live launch, configure persistent abuse limits and verify the model, catalogue, sender and email delivery with the owner. Existing live AI integration cannot be verified without credentials. The email endpoint checks provider acknowledgement before reporting submission and reuses an idempotency key when retrying an unchanged lead. See [Resend send-email](https://resend.com/docs/api-reference/emails/send-email) and [idempotency](https://resend.com/docs/dashboard/emails/idempotency-keys).
+
+## Optional sales territory routing
+
+Regional routing is **disabled** until the client confirms the representatives and their territories. All locations, including Pretoria and Cape Town, currently route to the admin inbox. No representative names or email addresses have been invented.
+
+After confirmation, configure server-only `SALES_REP_ROUTES_JSON` with records shaped like `{"name":"Confirmed rep name","email":"rep@example.com","areas":["Pretoria","Tshwane"]}` and set `SALES_ROUTING_ENABLED=true`. Replace the example address with a confirmed one. Each representative can have multiple city/suburb aliases. Matching ignores case and punctuation, and requires complete area names; it does not geocode addresses or guess nearby territories. Unknown, overlapping or ambiguous locations go to the admin for review. Invalid territory configuration also falls back to admin. Routing recipients come exclusively from server configuration, never from the visitor or the AI. Keep routing disabled while presenting the admin-only flow.
 
 ## Assets and motion
 

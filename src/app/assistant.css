@@ -1,0 +1,63 @@
+.assistant-panel { width: min(440px, calc(100vw - 32px)); height: min(700px, calc(100dvh - 126px)); border: 1px solid #ffffff85; border-radius: 20px; background: #faf9f5; box-shadow: 0 26px 90px #12201640, 0 0 0 1px #1b24160c; }
+.assistant-panel[hidden] { display: none; }
+.assistant-header { min-height: 78px; flex-shrink: 0; padding: 15px 18px; background: radial-gradient(ellipse at 0 0, #3c4934, transparent), #1d251c; }
+.assistant-avatar { width: 38px; height: 38px; border: 1px solid #e6bd9a55; background: #b78255; }
+.assistant-identity b { font-size: 13px; }
+.assistant-identity small { color: #d2d7c6; font-size: 9px; }
+.assistant-header-actions { gap: 0; }
+.assistant-header-actions button { width: 40px; height: 44px; }
+.assistant-demo-banner { display: flex; align-items: center; gap: 7px; margin: 0; padding: 11px 17px; flex-shrink: 0; border-bottom: 1px solid #eadfcf; background: #f3eadc; color: #735334; font-size: 10px; line-height: 1.5; }
+.assistant-demo-banner > span { flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: #ac7242; }
+.assistant-transcript { min-height: 0; padding: 23px 20px; scrollbar-width: thin; scrollbar-color: #c4bdad transparent; }
+.assistant-welcome .eyebrow { line-height: 1.7; letter-spacing: .09em; }
+.assistant-welcome h2 { margin-block: 16px; font-size: 35px; }
+.assistant-welcome > p { max-width: none; font-size: 13px; line-height: 1.8; }
+.assistant-suggestions { margin-top: 25px; }
+.assistant-suggestions button { min-height: 48px; font-size: 12px; border-radius: 11px; background: #ffffffb0; }
+.assistant-message { font-size: 13px; line-height: 1.7; padding: 12px 14px; overflow-wrap: anywhere; }
+.assistant-message.assistant { background: #eeeee5; }
+.assistant-message.user { background: #303c2a; }
+.assistant-details-link, .assistant-skip { display: flex; gap: 12px; align-items: center; justify-content: space-between; min-height: 44px; padding: 10px 0; border: 0; background: none; color: #765235; font-size: 11px; text-align: left; }
+.assistant-details-link { margin-top: 18px; width: 100%; border-top: 1px solid var(--line); }
+.assistant-composer { flex-shrink: 0; padding: 12px 14px; background: #ffffffc9; }
+.assistant-composer textarea { font-size: 13px; resize: none; }
+.assistant-composer button { width: 44px; height: 44px; }
+.assistant-disclaimer { flex-shrink: 0; padding: 10px 14px; font-size: 10px; line-height: 1.5; background: #fff; }
+.assistant-quote-form { margin: 0; padding: 0; border: 0; background: transparent; gap: 15px; }
+.assistant-quote-form h3 { font-size: 24px; letter-spacing: -.05em; }
+.assistant-quote-form > div:first-child > p { font-size: 12px; line-height: 1.7; }
+.assistant-quote-form label { font-size: 12px; gap: 7px; }
+.assistant-quote-form input, .assistant-quote-form textarea { min-height: 44px; font-size: 13px; padding: 11px; border-radius: 9px; background: white; }
+.assistant-quote-privacy { font-size: 11px; }
+.assistant-quote-submit { min-height: 46px; font-size: 12px; border-radius: 9px; }
+.assistant-error { margin-top: 12px; font-size: 12px; }
+.assistant-lead-stage:focus { outline: none; }
+.assistant-preview-status { display: flex; flex-direction: column; gap: 5px; margin-bottom: 18px; color: #334b2c; font-size: 14px; line-height: 1.6; }
+.assistant-preview-status span { font-size: 12px; color: var(--muted); }
+.lead-email-card { padding: 20px; border: 1px solid #dfded5; border-radius: 12px; background: white; color: #25291f; box-shadow: 0 8px 30px #20271906; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.lead-email-card p { white-space: pre-wrap; margin: 12px 0; }
+.lead-email-to { font-size: 11px; }
+.lead-email-subject { font-size: 11px; color: #74776d; }
+.lead-email-card h3 { margin: 18px 0; font-size: 15px; line-height: 1.4; color: #a1482b; }
+.lead-email-card .lead-email-routing { padding: 10px; border-radius: 5px; background: #fff4de; font-size: 11px; }
+.lead-email-card h4 { margin: 20px 0 10px; font-size: 13px; }
+.lead-email-card dl { margin: 0; }
+.lead-email-card dl > div { margin-block: 10px; }
+.lead-email-card dt { font-weight: 700; }
+.lead-email-card dd { margin: 0; }
+.lead-email-card footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; color: #74776d; font-size: 10px; }
+.assistant-preview-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
+.assistant-preview-actions button { min-height: 44px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: white; font-size: 11px; color: var(--ink); }
+.assistant-preview-actions .assistant-quote-submit { grid-column: 1 / -1; background: var(--copper); border-color: transparent; color: white; }
+.lead-copy-text { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.assistant-panel button:focus-visible, .assistant-launcher:focus-visible { outline: 2px solid #c78b58; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .assistant-panel { height: min(690px, calc(100dvh - 135px)); width: calc(100vw - 28px); border-radius: 16px; bottom: 60px; }
+  .assistant-header { padding-inline: 13px; }
+  .assistant-header-actions button { width: 36px; }
+  .assistant-transcript { padding: 20px 16px; }
+  .assistant-welcome h2 { font-size: 32px; }
+  .assistant-composer textarea, .assistant-quote-form input, .assistant-quote-form textarea { font-size: 16px; }
+  .assistant-demo-banner { padding-inline: 13px; font-size: 9px; }
+  .assistant-preview-actions { grid-template-columns: 1fr; }
+}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { isAssistantDemo } from "@/lib/assistant-config";
 import { IS_PREVIEW } from "@/lib/store-config";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -10,6 +10,7 @@ import "lenis/dist/lenis.css";
 import "./globals.css";
 import "./motion.css";
 import "./storefront.css";
+import "./assistant.css";
 
 export const metadata: Metadata = {
   title: {
@@ -32,7 +33,7 @@ export default function RootLayout({
           <Header />
           {children}
           <Footer />
-          {!IS_PREVIEW && process.env.OPENAI_API_KEY ? <PartsAssistant /> : <div className="assistant-root"><Link className="assistant-launcher" href="/request-quote">Get your quote <span aria-hidden="true">↗</span></Link></div>}
+          <PartsAssistant demo={isAssistantDemo()} />
         </StorefrontProvider>
       </body>
     </html>

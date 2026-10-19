@@ -1,248 +1,76 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAssistantDemo } from "@/lib/assistant-config";
+import { isEmail, readLead } from "@/lib/lead";
+import { buildLeadEmail } from "@/lib/lead-email";
+import { readRoutingConfig, resolveLeadRoute } from "@/lib/lead-routing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const REQUEST_LIMIT = 5;
-const WINDOW_MS = 60_000;
 const requestWindows = new Map<string, { startedAt: number; count: number }>();
+const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
-type QuoteMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-type QuoteRequest = {
-  name: string;
-  email: string;
-  phone: string;
-  location: string;
-  request: string;
-  messages: QuoteMessage[];
-};
-
-function badRequest(message: string) {
-  return NextResponse.json({ error: message }, { status: 400 });
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => {
-    switch (character) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      case "'":
-        return "&#39;";
-      default:
-        return character;
+async function readBody(request: NextRequest): Promise<unknown> {
+  const reader = request.body?.getReader();
+  if (!reader) return null;
+  const decoder = new TextDecoder();
+  let size = 0;
+  let text = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > 48_000) { await reader.cancel(); throw new RangeError("Too large"); }
+      text += decoder.decode(value, { stream: true });
     }
-  });
+    return JSON.parse(text + decoder.decode());
+  } finally { reader.releaseLock(); }
 }
 
-function isRateLimited(request: NextRequest): boolean {
-  const address =
-    request.headers.get("x-real-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+function rateLimited(request: NextRequest) {
   const now = Date.now();
-
-  for (const [key, window] of requestWindows) {
-    if (now - window.startedAt >= WINDOW_MS) requestWindows.delete(key);
-  }
-
-  const current = requestWindows.get(address);
-  if (!current || now - current.startedAt >= WINDOW_MS) {
-    requestWindows.set(address, { startedAt: now, count: 1 });
-    return false;
-  }
-
-  current.count += 1;
-  return current.count > REQUEST_LIMIT;
-}
-
-function readQuoteRequest(value: unknown): QuoteRequest | null {
-  if (typeof value !== "object" || value === null) return null;
-  const body = value as Record<string, unknown>;
-  const stringFields = ["name", "email", "phone", "location", "request"] as const;
-  const limits = { name: 120, email: 254, phone: 40, location: 120, request: 1500 };
-
-  for (const field of stringFields) {
-    const fieldValue = body[field];
-    if (
-      typeof fieldValue !== "string" ||
-      fieldValue.trim().length === 0 ||
-      fieldValue.length > limits[field]
-    ) {
-      return null;
-    }
-  }
-
-  const email = (body.email as string).trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
-  if (!Array.isArray(body.messages) || body.messages.length > 8) return null;
-
-  const messages: QuoteMessage[] = [];
-  for (const message of body.messages) {
-    if (
-      typeof message !== "object" ||
-      message === null ||
-      !("role" in message) ||
-      !("content" in message) ||
-      (message.role !== "user" && message.role !== "assistant") ||
-      typeof message.content !== "string" ||
-      message.content.trim().length === 0 ||
-      message.content.length > 1000
-    ) {
-      return null;
-    }
-    messages.push({ role: message.role, content: message.content.trim() });
-  }
-
-  if (!messages.some((message) => message.role === "user")) return null;
-
-  return {
-    name: (body.name as string).trim(),
-    email,
-    phone: (body.phone as string).trim(),
-    location: (body.location as string).trim(),
-    request: (body.request as string).trim(),
-    messages,
-  };
+  for (const [key, value] of requestWindows) if (now - value.startedAt > 60_000) requestWindows.delete(key);
+  const key = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const value = requestWindows.get(key) || { startedAt: now, count: 0 };
+  value.count++;
+  // This local guard is not a substitute for a persistent limit before public live launch.
+  if (requestWindows.size >= 10_000 && !requestWindows.has(key)) return true;
+  requestWindows.set(key, value);
+  return value.count > 5;
 }
 
 export async function POST(request: NextRequest) {
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (contentLength > 16_000) {
-    return NextResponse.json({ error: "Your request is too long." }, { status: 413 });
-  }
-
-  if (isRateLimited(request)) {
-    return NextResponse.json(
-      { error: "Please wait a minute before sending another quote request." },
-      { status: 429 },
-    );
-  }
-
+  if (request.headers.get("sec-fetch-site") === "cross-site") return json({ error: "Please submit your enquiry from this website." }, 403);
+  const demo = isAssistantDemo();
+  if (!demo && rateLimited(request)) return json({ error: "Please wait a minute before sending another enquiry." }, 429);
   let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return badRequest("Please send a valid quote request.");
-  }
+  try { body = await readBody(request); }
+  catch (error) { return json({ error: error instanceof RangeError ? "Your enquiry is too long." : "Please send a valid enquiry." }, error instanceof RangeError ? 413 : 400); }
+  const lead = readLead(body);
+  if (!lead) return json({ error: "Please enter your name, location, a valid email and phone number, and the part or supply you need." }, 400);
 
-  const quote = readQuoteRequest(body);
-  if (!quote) {
-    return badRequest("Please complete each field with valid details.");
-  }
+  let email;
+  try { email = buildLeadEmail(lead, resolveLeadRoute(lead.location, readRoutingConfig()), demo); }
+  catch { return json({ error: "The sales inbox is not configured correctly. Please contact the team directly." }, 503); }
+
+  // Server-controlled mode: clients cannot turn a presentation into a real send.
+  if (demo) return json({ status: "preview", sent: false, email });
 
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
-  const recipients = process.env.SALES_EMAIL_TO?.split(",").map((email) => email.trim()).filter(Boolean);
-  if (!apiKey || !from || !recipients?.length) {
-    return NextResponse.json(
-      { error: "Quote email is not configured yet. Please contact the Farmalot team directly." },
-      { status: 503 },
-    );
-  }
-
-  if (
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(from.replace(/^.*<([^<>]+)>$/, "$1")) ||
-    recipients.some((email) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-  ) {
-    console.error("Quote email configuration contains an invalid sender or sales recipient.");
-    return NextResponse.json(
-      { error: "Quote email is not configured correctly. Please contact the Farmalot team." },
-      { status: 503 },
-    );
-  }
-
-  const transcript = quote.messages
-    .map(({ role, content }) => `${role === "user" ? "Customer" : "Farmalot assistant"}: ${content}`)
-    .join("\n\n");
-  const safeTranscript = quote.messages
-    .map(
-      ({ role, content }) =>
-        `<p style="margin:0 0 12px"><b>${role === "user" ? "Customer" : "Farmalot assistant"}:</b> ${escapeHtml(content).replace(/\n/g, "<br>")}</p>`,
-    )
-    .join("");
-  const location = escapeHtml(quote.location);
-  const text = [
-    `IMPORTANT — New Farmalot lead: ${quote.location}`,
-    "",
-    "Routing: Central sales inbox (regional representative routing is not configured yet).",
-    "",
-    "CUSTOMER",
-    `Name: ${quote.name}`,
-    `Email: ${quote.email}`,
-    `Phone: ${quote.phone}`,
-    `Location: ${quote.location}`,
-    "",
-    "ENQUIRY",
-    "Interested in:",
-    quote.request,
-    "",
-    "Conversation summary:",
-    transcript,
-    "",
-    "Regional routing can be enabled once the sales representatives and their covered areas are confirmed.",
-  ].join("\n");
-  const html = `
-    <div style="font-family:Arial,sans-serif;color:#181a16;line-height:1.55;max-width:720px">
-      <h2 style="margin:0 0 18px;color:#a9472b">IMPORTANT — New Farmalot lead: ${location}</h2>
-      <p style="padding:10px 12px;background:#fff4dd"><b>Routing:</b> Central sales inbox. Regional representative routing is not configured yet.</p>
-      <h3 style="margin:24px 0 10px">Customer</h3>
-      <p><b>Name:</b> ${escapeHtml(quote.name)}</p>
-      <p><b>Email:</b> <a href="mailto:${escapeHtml(quote.email)}">${escapeHtml(quote.email)}</a></p>
-      <p><b>Contact via phone:</b> ${escapeHtml(quote.phone)}</p>
-      <p><b>Location:</b> ${location}</p>
-      <h3 style="margin:24px 0 10px">Enquiry</h3>
-      <p><b>Interested in:</b> ${escapeHtml(quote.request).replace(/\n/g, "<br>")}</p>
-      <h4 style="margin:20px 0 8px">Conversation summary</h4>
-      ${safeTranscript}
-      <hr style="margin:24px 0;border:0;border-top:1px solid #ddd">
-      <p style="color:#777;font-size:12px">Regional lead routing can be enabled when the sales representatives and their covered areas are confirmed.</p>
-      <p style="color:#777;font-size:12px">Farmeralot · Fast parts for farmlands</p>
-    </div>`;
-
-  let response: Response;
+  if (!apiKey || !from || !isEmail(from.replace(/^.*<([^<>]+)>$/, "$1"))) return json({ error: "Email delivery is not configured yet. Please contact the team directly." }, 503);
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (!idempotencyKey || !/^[a-f\d-]{36}$/i.test(idempotencyKey)) return json({ error: "Please refresh the page before sending your enquiry." }, 400);
   try {
-    response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: recipients,
-        reply_to: quote.email,
-        subject: `IMPORTANT — New Farmalot lead: ${quote.location.replace(/[\r\n]+/g, " ").slice(0, 120)}`,
-        text,
-        html,
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": `lead/${idempotencyKey}` },
+      body: JSON.stringify({ from, to: email.to, reply_to: lead.email, subject: email.subject, text: email.text, html: email.html }),
+      cache: "no-store", signal: AbortSignal.timeout(15_000),
     });
-  } catch (error) {
-    console.error("Sending Farmalot quote email failed.", error);
-    return NextResponse.json(
-      { error: "We couldn't send your quote request just now. Please try again." },
-      { status: 502 },
-    );
-  }
-
-  if (!response.ok) {
-    console.error(`Quote email provider returned HTTP ${response.status}.`);
-    return NextResponse.json(
-      { error: "We couldn't send your quote request just now. Please try again." },
-      { status: 502 },
-    );
-  }
-
-  return NextResponse.json({ ok: true });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || typeof result?.id !== "string" || !result.id) return json({ error: "The email service did not confirm your enquiry. Your details are still here; please retry." }, 502);
+    return json({ status: "sent" });
+  } catch { return json({ error: "We couldn’t confirm your enquiry just now. Please retry with the details below." }, 502); }
 }

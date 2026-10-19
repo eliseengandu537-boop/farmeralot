@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchProductsLive } from "@/lib/woocommerce";
+import { isAssistantDemo } from "@/lib/assistant-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +70,9 @@ function readMessages(value: unknown): ChatMessage[] | null {
 }
 
 export async function POST(request: NextRequest) {
+  if (isAssistantDemo()) {
+    return NextResponse.json({ error: "Presentation demo uses guided replies. Live AI is disabled." }, { status: 409 });
+  }
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json(
       { error: "The AI parts assistant is not configured yet." },
