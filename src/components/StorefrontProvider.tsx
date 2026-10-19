@@ -8,35 +8,13 @@ import {
   useMemo,
   useState,
 } from "react";
-
-type CartItem = {
-  key: string;
-  id: number;
-  name: string;
-  quantity: number;
-  prices: {
-    price: string;
-    currency_code: string;
-    currency_minor_unit: number;
-  };
-  images: { src: string; thumbnail: string; alt: string }[];
-};
-
-type CartData = {
-  items: CartItem[];
-  items_count: number;
-  totals: {
-    total_price: string;
-    currency_code: string;
-    currency_minor_unit: number;
-    currency_symbol: string;
-  };
-  payment_methods: string[];
-};
+import { IS_PREVIEW } from "@/lib/store-config";
+import { isCartData, type CartData } from "@/lib/cart";
 
 type StorefrontContextValue = {
   cart: CartData | null;
   cartError: string;
+  cartLoading: boolean;
   refreshCart: () => Promise<void>;
   addToCart: (productId: number, quantity?: number) => Promise<void>;
   updateCartItem: (key: string, quantity: number) => Promise<void>;
@@ -59,13 +37,17 @@ export function StorefrontProvider({
 }) {
   const [cart, setCart] = useState<CartData | null>(null);
   const [cartError, setCartError] = useState("");
+  const [cartLoading, setCartLoading] = useState(true);
 
   const request = useCallback(
     async (path: string, body?: Record<string, unknown>) => {
+      if (IS_PREVIEW) return (await import("@/lib/preview-cart")).previewCartRequest(path, body);
       const headers = new Headers({ Accept: "application/json" });
       if (body) headers.set("Content-Type", "application/json");
-      const token = window.localStorage.getItem(TOKEN_KEY);
-      const nonce = window.localStorage.getItem(NONCE_KEY);
+      let token: string | null = null;
+      let nonce: string | null = null;
+      try { token = window.localStorage.getItem(TOKEN_KEY); nonce = window.localStorage.getItem(NONCE_KEY); }
+      catch { throw new Error("Allow browser storage for this site to use the basket."); }
       if (token) headers.set("Cart-Token", token);
       if (nonce) headers.set("Nonce", nonce);
 
@@ -73,6 +55,7 @@ export function StorefrontProvider({
         method: body ? "POST" : "GET",
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(16_000),
       });
 
       const nextToken = response.headers.get("Cart-Token");
@@ -80,7 +63,9 @@ export function StorefrontProvider({
       if (nextToken) window.localStorage.setItem(TOKEN_KEY, nextToken);
       if (nextNonce) window.localStorage.setItem(NONCE_KEY, nextNonce);
 
-      const result: unknown = await response.json();
+      let result: unknown;
+      try { result = await response.json(); }
+      catch { throw new Error("The store sent an unreadable response. Please refresh your basket."); }
       if (!response.ok) {
         const message =
           typeof result === "object" &&
@@ -91,13 +76,14 @@ export function StorefrontProvider({
             : "Your cart could not be updated. Please try again.";
         throw new Error(message);
       }
-
+      if (path.startsWith("cart") && !isCartData(result)) throw new Error("We couldn’t confirm your basket. Please try again.");
       return result;
     },
     [],
   );
 
   const refreshCart = useCallback(async () => {
+    setCartLoading(true);
     try {
       const result = await request("cart");
       setCart(result as CartData);
@@ -106,6 +92,8 @@ export function StorefrontProvider({
       const message =
         error instanceof Error ? error.message : "Could not load your cart.";
       setCartError(message);
+    } finally {
+      setCartLoading(false);
     }
   }, [request]);
 
@@ -125,7 +113,7 @@ export function StorefrontProvider({
             error instanceof Error ? error.message : "Could not load your cart.",
           );
         }
-      });
+      }).finally(() => { if (current) setCartLoading(false); });
 
     return () => {
       current = false;
@@ -152,6 +140,7 @@ export function StorefrontProvider({
     () => ({
       cart,
       cartError,
+      cartLoading,
       refreshCart,
       addToCart: (productId, quantity = 1) =>
         mutateCart("cart/add-item", { id: productId, quantity }),
@@ -166,7 +155,7 @@ export function StorefrontProvider({
         }),
       clearCartError: () => setCartError(""),
     }),
-    [cart, cartError, mutateCart, refreshCart, request],
+    [cart, cartError, cartLoading, mutateCart, refreshCart, request],
   );
 
   return (

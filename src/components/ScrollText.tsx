@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 
 type ScrollTextProps = {
-  as?: "h1" | "h2";
+  as?: "h1" | "h2" | "h3";
+  id?: string;
   lines: string[];
   highlightWord?: string;
   className?: string;
@@ -11,6 +12,7 @@ type ScrollTextProps = {
 
 export function ScrollText({
   as: Heading = "h2",
+  id,
   lines,
   highlightWord,
   className,
@@ -27,19 +29,33 @@ export function ScrollText({
       return;
     }
 
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     heading.dataset.wordReveal = "ready";
+    function reveal() {
+      if (heading) heading.dataset.wordReveal = "visible";
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          heading.dataset.wordReveal = "visible";
+          reveal();
           observer.unobserve(heading);
         }
       },
-      { threshold: 0.35, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0.12, rootMargin: "0px 0px -20px 0px" },
     );
 
     observer.observe(heading);
-    return () => observer.disconnect();
+    function motionChanged() {
+      if (reduced.matches) { reveal(); observer.disconnect(); }
+    }
+    heading.addEventListener("focusin", reveal);
+    reduced.addEventListener("change", motionChanged);
+    return () => {
+      observer.disconnect();
+      heading.removeEventListener("focusin", reveal);
+      reduced.removeEventListener("change", motionChanged);
+      delete heading.dataset.wordReveal;
+    };
   }, []);
 
   const normalizedHighlight = highlightWord?.toLowerCase();
@@ -52,6 +68,7 @@ export function ScrollText({
   return (
     <Heading
       ref={headingRef}
+      id={id}
       className={className}
       aria-label={lines.join(" ")}
     >
@@ -69,6 +86,7 @@ export function ScrollText({
                 >
                   {word}
                 </span>
+                {" "}
               </span>
             );
           })}

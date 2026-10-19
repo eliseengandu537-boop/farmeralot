@@ -2,38 +2,55 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useStorefront } from "@/components/StorefrontProvider";
-import { STORE_URL } from "@/lib/woocommerce";
 
 export function Header() {
   const { cart } = useStorefront();
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLButtonElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") { setMenuOpen(false); menuRef.current?.focus(); }
+    }
+    function closeOutside(event: PointerEvent) {
+      if (event.target instanceof Node && !headerRef.current?.contains(event.target)) setMenuOpen(false);
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOutside);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOutside);
+    };
+  }, [menuOpen]);
 
   return (
     <>
-      <div className="announcement">
-        <span>Fast parts. Less downtime.</span>
-        <span className="announcement-detail">Delivery across South Africa</span>
-      </div>
-      <header className="site-header">
+      <header ref={headerRef} className={`site-header${pathname === "/" ? " header-home" : ""}`}>
         <Link className="brand" href="/" aria-label="Farmeralot home">
-          <Image className="brand-logo" src={`${STORE_URL}/wp-content/uploads/2024/11/Farmeralot-Logos_FARMALOT_-FC-_-LOGO-ON-BLACK-06-2-1-e1731861053463.png`} alt="Farmeralot" width={220} height={95} priority />
+          <Image className="brand-logo" src="/catalogue/farmeralot-logo.webp" alt="Farmeralot" width={220} height={95} priority />
         </Link>
         <button
           className="menu-toggle"
+          ref={menuRef}
           type="button"
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
+          aria-controls="main-navigation"
           onClick={() => setMenuOpen((open) => !open)}
         >
           <span />
           <span />
         </button>
-        <nav className={`main-nav${menuOpen ? " is-open" : ""}`}>
-          <Link href="/shop" onClick={() => setMenuOpen(false)}>Shop parts</Link>
-          <Link href="/about" onClick={() => setMenuOpen(false)}>Our story</Link>
-          <Link href="/request-quote" onClick={() => setMenuOpen(false)}>Get a quote</Link>
+        <nav id="main-navigation" aria-label="Main navigation" className={`main-nav${menuOpen ? " is-open" : ""}`}>
+          <Link href="/shop" aria-current={pathname === "/shop" ? "page" : undefined} onClick={() => setMenuOpen(false)}>Shop parts</Link>
+          <Link href="/about" aria-current={pathname === "/about" ? "page" : undefined} onClick={() => setMenuOpen(false)}>Our story</Link>
+          <Link href="/request-quote" aria-current={pathname === "/request-quote" ? "page" : undefined} onClick={() => setMenuOpen(false)}>Get a quote</Link>
         </nav>
         <div className="header-actions">
           <form action="/shop" className="header-search">

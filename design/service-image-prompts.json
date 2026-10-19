@@ -1,0 +1,17 @@
+{
+  "mode": "Built-in image_gen",
+  "intent": "generate",
+  "purpose": "Illustrative farm vehicle photographs for the homepage service panels; not photographs of Farmeralot-owned vehicles.",
+  "images": [
+    {
+      "slug": "service-tractor",
+      "prompt": "Use case: photorealistic-natural.\nAsset type: landscape photograph for a premium South African agricultural machinery parts website, service card 2.\nPrimary request: a realistic farm tractor in its working environment.\nScene: a quiet cultivated South African farm, gently rolling fields and a distant tree line, dry earth and fresh crop rows.\nSubject: one sturdy unbranded dark olive-green modern tractor, fully visible, three-quarter front view, authentic rubber tyres, cab glass and mechanical details. No people needed.\nComposition: landscape 3:2 photograph with the tractor near the center, enough breathing room around all wheels and cab to crop into a nearly square website panel. Tractor occupies about 65 percent of the frame width; clean foreground, modest sky.\nLighting: natural late-afternoon warm light, soft shadows, realistic restrained editorial color grading, crisp detailed vehicle and gently atmospheric background.\nConstraints: believable mechanical construction, polished natural photographic quality, no logos, no readable text, no watermark, no graphic overlays.",
+      "path": "public/service-tractor.webp"
+    },
+    {
+      "slug": "service-farm-truck",
+      "prompt": "Use case: photorealistic-natural.\nAsset type: landscape photograph for a premium South African agricultural parts delivery website, service card 3.\nPrimary request: a realistic farm delivery truck arriving along a rural farm road.\nScene: a South African farm gravel lane, open simple timber farm gate, golden grass, cultivated fields and low distant hills.\nSubject: one unbranded cream-white practical single-cab flatbed farm truck, three-quarter front view, carrying a few secured plain wooden crates. All vehicle wheels and body clearly visible, believable working vehicle with light road dust. No people needed.\nComposition: landscape 3:2 photograph, truck near the center occupying about 60 percent of width, breathing room around it so it can crop to a nearly square card; lane leads into the scene and farm gate remains peripheral. No enormous foreground objects.\nLighting: warm natural late-afternoon sunlight, realistic restrained editorial photography, soft shadows, crisp truck details, harmonious olive green and warm earth tones.\nConstraints: no logos, no lettering or readable license plate, no watermark, no graphic overlays, no exaggerated dust clouds, mechanically plausible truck.",
+      "path": "public/service-farm-truck.webp"
+    }
+  ]
+}

@@ -4,6 +4,9 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/ProductDetails";
 import { formatPrice, getProduct, htmlToText } from "@/lib/woocommerce";
+import { loadCatalogue } from "@/lib/store-request";
+import { IS_PREVIEW } from "@/lib/store-config";
+import { StoreUnavailable } from "@/components/StoreUnavailable";
 
 export async function generateMetadata({
   params,
@@ -11,8 +14,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProduct(slug);
-  return { title: product?.name ?? "Part" };
+  const result = await loadCatalogue(() => getProduct(slug));
+  return { title: result.data?.name ?? "Part" };
 }
 
 export default async function ProductPage({
@@ -21,7 +24,9 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  const result = await loadCatalogue(() => getProduct(slug));
+  if (result.error) return <main className="page-shell"><StoreUnavailable title="We couldn’t load this part." /></main>;
+  const product = result.data;
   if (!product) notFound();
 
   const image = product.images[0];
@@ -46,7 +51,7 @@ export default async function ProductPage({
           <p className="product-detail-description">{htmlToText(product.short_description || product.description)}</p>
           <p className="detail-price">{price}</p>
           <p className={`availability ${product.is_in_stock ? "available" : "unavailable"}`}>
-            <span />{hasPrice && product.is_in_stock ? "In stock · ready to order" : "Confirm price and availability"}
+            <span />{IS_PREVIEW ? "Saved catalogue · confirm current availability" : hasPrice && product.is_in_stock ? "In stock · ready to order" : "Confirm price and availability"}
           </p>
           <AddToCartButton productId={product.id} productName={product.name} sku={product.sku} hasPrice={hasPrice} disabled={!product.is_in_stock} />
           <Link className="text-link quote-detail-link" href={`/request-quote?product=${encodeURIComponent(product.name)}&sku=${encodeURIComponent(product.sku)}`}>

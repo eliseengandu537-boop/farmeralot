@@ -1,49 +1,79 @@
 # Farmeralot storefront
 
-A responsive Next.js storefront backed by the public Farmeralot WooCommerce Store API. Product listings, category pages, cart state, and order checkout use the existing WordPress store.
+A responsive Next.js storefront with smooth desktop scrolling, a cinematic video hero, accessible navigation, and a parts enquiry flow.
 
-The homepage hero video is served from `public/farmeralot-background.mp4`. Replace that file to update the background clip.
-
-## Run locally
+## Present to the client
 
 ```powershell
 npm install
-Copy-Item .env.example .env.local
-npm run dev
+npm run preview
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. If the development server is already running, use its existing browser tab. The local `.env.local` also selects preview mode.
 
-Set `NEXT_PUBLIC_STORE_URL` in `.env.local` to the WordPress store URL when using a different backend. Product images are loaded from that host.
+For a production preview without the development overlay:
 
-## AI parts assistant
+```powershell
+npm run build:preview
+npm run start:preview -- --port 3001
+```
 
-The floating “Get your quote” assistant can search the live WooCommerce catalogue and help customers describe farm products they want delivered. It avoids claiming that a part fits a machine or inventing availability, prices, or delivery dates; customers should confirm fitment with the parts team.
+Then open `http://localhost:3001`.
 
-1. Create an API key in your OpenAI account at <https://platform.openai.com/api-keys>.
-2. Add it to the root `.env.local` file as `OPENAI_API_KEY=...` (never put it in a `NEXT_PUBLIC_` variable or send it in chat).
-3. Restart the Next.js development server.
+The presentation has 56 saved, real catalogue products and 49 local images recovered from successful public catalogue responses in this project's cache. It does not need the live store for product data or images. Some categories have no saved products and some products have no cached image; these show an enquiry option or image fallback. This snapshot is not the complete live inventory.
 
-The key stays in the server-side `/api/assistant` route. Without it, AI replies are unavailable. OpenAI usage is billed to the account that owns the key.
+Suggested walkthrough:
 
-Quote-request emails are sent through Resend. Set `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (a sender address on a domain verified in Resend), and `SALES_EMAIL_TO` (one or more comma-separated sales inboxes) in `.env.local`. Without these values, quote requests are not submitted and the form displays a setup message. Customer details and the conversation are sent to the configured sales inboxes and are not stored by this app.
-Both API routes have small in-process request limits for development. Before public deployment, add persistent rate limits at the hosting/edge layer.
+1. Home: hero video, text reveals, smooth scrolling and stacked service sections.
+2. Shop: search `ALT7927`, browse Bearings, or page through the full saved catalogue.
+3. Open a product, add it to the quote basket, and change its quantity.
+4. Continue to the enquiry form and fill in your contact details.
+5. Prepare the email to `eliseenweb@gmail.com`. Review it, then open your email app or copy the enquiry text.
 
-## Commerce setup
+Preparing an email does **not** send it. The visitor must send it from their email app. No customer contact details are stored by this form. Only basket product IDs and quantities are saved in this browser.
 
-- The product catalogue is read from WooCommerce Store API.
-- Basket operations and checkout are proxied server-side to the WooCommerce Store API; the browser stores the returned cart token and nonce.
-- Enable and configure the PayFast gateway in the existing WooCommerce admin. The checkout shows PayFast only when WooCommerce reports a PayFast payment method and returns its hosted payment URL.
-- The AI quote form emails the configured sales team; the separate `/request-quote` page still links to the existing Farmeralot quote form.
-- Account login and order history remain on the existing WooCommerce account page.
+The preview banner stays visible. The saved products have no checkout prices, so the UI uses “Price on request.” Preview mode cannot create orders, charge payments, or access account history. The proxy also rejects direct order requests. Account and policy pages link to the official live site for the current information.
 
-The WordPress store must allow the Store API cart and checkout endpoints. If a security plugin or proxy blocks those endpoints, allow `/wp-json/wc/store/v1/cart*` and `/wp-json/wc/store/v1/checkout`.
+## Live store connection
+
+The live WooCommerce Store API currently returns an Imunify360 HTTP 403 access denial to this storefront's server. Live checkout is not restored by preview mode. The store administrator or hosting provider needs to permit the storefront server through the existing firewall before live integration can be verified.
+
+After that is resolved, set these values in `.env.local`, then rebuild and restart using `npm run build` and `npm start`:
+
+```dotenv
+NEXT_PUBLIC_STORE_URL=https://farmeralot.co.za
+NEXT_PUBLIC_STOREFRONT_MODE=live
+```
+
+The `preview`, `build:preview`, and `start:preview` commands deliberately force preview mode. Use the ordinary commands for a live build. Public environment variables are fixed at build time, so changing modes requires rebuilding production assets.
+
+Live catalogue requests have timeouts and recoverable error screens. Basket and checkout requests pass through `/api/wc/*`; the browser keeps WooCommerce's cart token and nonce. PayFast appears only when the live store reports a compatible payment method. Account login and order history stay on the existing store. Verify the live catalogue, basket and payment configuration before accepting customer orders.
+
+## AI assistant deferred
+
+The AI assistant is hidden in presentation mode and whenever no server-side `OPENAI_API_KEY` exists. The floating quote button opens the working enquiry page. AI and automatic email delivery have been left for later as requested.
+
+Existing assistant/email API routes remain in the project, but are not part of the presentation flow. Automatic delivery would require Resend settings (`RESEND_API_KEY`, a verified `RESEND_FROM_EMAIL`, and `SALES_EMAIL_TO`). Do not put private keys in `NEXT_PUBLIC_` variables. Before making those endpoints public, replace their development-only in-process rate limits with persistent limits.
+
+## Assets and motion
+
+The hero video is `public/farmeralot-background.mp4`; its static poster is `public/farm-poster.jpg`. Replace both when changing the clip. Local catalogue images live in `public/catalogue/` and the public snapshot in `src/data/`. Keep these files with the project so a clean build works.
+
+The first service card uses the supplied harvesting clip, `public/service-parts.mp4`, and its extracted poster, `public/service-parts-poster.webp`. The portrait video keeps its full frame with a soft poster backdrop. It loads when visible, pauses when covered by another sticky card or off screen, and respects reduced motion unless the visitor explicitly presses play.
+
+Cards 2 and 3 use `public/service-tractor.webp` and `public/service-farm-truck.webp`. These illustrative vehicle photos were generated with the built-in image generation tool; their prompts are recorded in `design/service-image-prompts.json`. They are not photographs of a Farmeralot fleet. The realistic category PNG illustrations live in `public/category-images/`, with prompts in `design/category-image-prompts.json`.
+
+`scripts/prepare-preview.mjs` is a one-time recovery utility for successful public catalogue/image cache entries. It does not fetch the blocked site or export cart tokens or customer data. Do not rerun it without a populated cache; the bundled snapshot is ready to use.
+
+Lenis smooths desktop wheel input. Touch and reduced-motion visitors keep native scrolling. Text remains readable without JavaScript; the hero video pauses when hidden, off screen, or reduced motion is enabled, and has a visible pause control.
 
 ## Verification
 
 ```powershell
 npm run lint
 npx tsc --noEmit
-npm run build
+npm run build:preview
+npm run test:e2e
 ```
-# farmeralot
+
+Browser tests expect preview mode on port 3000, reuse the running server or start one, and use installed Microsoft Edge on Windows. On other platforms install Chromium with `npx playwright install chromium`. They cover routes, catalogue search, pagination, basket persistence, the email preparation flow, mobile layouts, motion preferences, and rendering without JavaScript. Request-helper tests cover 403, invalid responses, and connection failures without contacting the live store. Tests do not send emails or place orders.

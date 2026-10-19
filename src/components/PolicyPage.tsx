@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { htmlToText, STORE_URL } from "@/lib/woocommerce";
+import { IS_PREVIEW } from "@/lib/store-config";
 
 const policyDetails: Record<string, { title: string; intro: string; source: string }> = {
   "warranty-policy": {
@@ -27,17 +28,22 @@ export async function PolicyPage({ slug }: { slug: string }) {
   const policy = policyDetails[slug];
   if (!policy) return null;
 
-  const response = await fetch(
-    `${STORE_URL}/wp-json/wp/v2/pages?slug=${policy.source}&_fields=content`,
-    { next: { revalidate: 1800 } },
-  );
-  if (!response.ok) {
-    throw new Error(`Could not load the current ${policy.title.toLowerCase()}.`);
+  let policyText = "";
+  if (!IS_PREVIEW) try {
+    const response = await fetch(
+      `${STORE_URL}/wp-json/wp/v2/pages?slug=${policy.source}&_fields=content`,
+      { next: { revalidate: 1800 }, signal: AbortSignal.timeout(12_000) },
+    );
+    if (!response.ok) {
+      throw new Error(`Policy request failed (${response.status}).`);
+    }
+    const pages: PolicyResponse[] = await response.json();
+    const rendered = Array.isArray(pages) ? pages[0]?.content?.rendered : undefined;
+    if (typeof rendered === "string") policyText = htmlToText(rendered);
+  } catch {
+    // Keep the existing link to the official policy when WordPress is unavailable.
+    console.warn(`Live ${policy.title.toLowerCase()} unavailable; linking to the official policy.`);
   }
-  const pages: PolicyResponse[] = await response.json();
-  const policyText = pages[0]?.content?.rendered
-    ? htmlToText(pages[0].content.rendered)
-    : "";
 
   return (
     <main className="policy-page page-shell">

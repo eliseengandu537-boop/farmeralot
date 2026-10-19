@@ -25,11 +25,15 @@ export function Reveal({
 
     element.style.setProperty("--reveal-delay", `${delay}ms`);
     element.dataset.revealReady = "true";
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    function reveal() {
+      if (element) element.dataset.revealed = "true";
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          element.dataset.revealed = "true";
+          reveal();
           observer.unobserve(element);
         }
       },
@@ -37,7 +41,17 @@ export function Reveal({
     );
 
     observer.observe(element);
-    return () => observer.disconnect();
+    function motionChanged() {
+      if (reduced.matches) { reveal(); observer.disconnect(); }
+    }
+    element.addEventListener("focusin", reveal);
+    reduced.addEventListener("change", motionChanged);
+    return () => {
+      observer.disconnect();
+      element.removeEventListener("focusin", reveal);
+      reduced.removeEventListener("change", motionChanged);
+      delete element.dataset.revealReady;
+    };
   }, [delay]);
 
   return (

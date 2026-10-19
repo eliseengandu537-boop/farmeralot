@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatPrice } from "@/lib/woocommerce";
 import { useStorefront } from "@/components/StorefrontProvider";
+import { QuoteForm } from "@/components/QuoteForm";
+import { IS_PREVIEW } from "@/lib/store-config";
 
 type Address = {
   first_name: string;
@@ -30,7 +32,7 @@ const emptyAddress: Address = {
 };
 
 export default function CheckoutPage() {
-  const { cart, cartError, submitCheckout } = useStorefront();
+  const { cart, cartError, cartLoading, refreshCart, submitCheckout } = useStorefront();
   const [address, setAddress] = useState<Address>(emptyAddress);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [busy, setBusy] = useState(false);
@@ -68,13 +70,20 @@ export default function CheckoutPage() {
   return (
     <main className="page-shell checkout-page">
       <div className="breadcrumb"><Link href="/">Home</Link><span>/</span><Link href="/cart">Basket</Link><span>/</span><span>Checkout</span></div>
-      <span className="eyebrow">Secure checkout · ZAR</span>
-      <h1>Let’s get it <em>to you.</em></h1>
+      <span className="eyebrow">{IS_PREVIEW ? "Your selected parts" : "Secure checkout · ZAR"}</span>
+      <h1>{IS_PREVIEW ? <>Review your <em>enquiry.</em></> : <>Let’s get it <em>to you.</em></>}</h1>
       {cartError && <p className="inline-error" role="alert">{cartError}</p>}
-      {!cart || cart.items.length === 0 ? (
+      {!cart ? (
+        <div className="empty-state"><h2>{cartLoading ? "Loading your basket…" : "Your basket could not be loaded."}</h2>{!cartLoading && <button className="button button-dark" onClick={() => void refreshCart()}>Try again</button>}</div>
+      ) : cart.items.length === 0 ? (
         <div className="empty-state"><h2>Your basket is empty.</h2><Link className="button button-dark" href="/shop">Browse parts</Link></div>
+      ) : IS_PREVIEW ? (
+        <div className="quote-checkout-layout">
+          <QuoteForm includeBasket />
+          <aside className="cart-summary"><span className="eyebrow">The next step</span><h2>Let’s find your fit.</h2><p>Share your contact details and prepare an email with your selected parts. The team can confirm compatibility, current prices, and delivery.</p><p className="preview-checkout-note">Presentation preview. This enquiry does not create an order or take payment.</p><Link className="summary-quote" href="/cart">Edit your basket</Link></aside>
+        </div>
       ) : Number(cart.totals.total_price) <= 0 ? (
-        <div className="empty-state"><h2>These parts need a quote.</h2><p>The live catalogue does not include checkout prices for the items in your basket. Request a quote and the Farmeralot team can confirm pricing and availability.</p><Link className="button button-dark" href="/request-quote">Request a quote <span aria-hidden="true">↗</span></Link></div>
+        <div className="empty-state"><h2>These parts need a quote.</h2><p>The live catalogue does not include checkout prices for the items in your basket. Request a quote and the Farmeralot team can confirm pricing and availability.</p><Link className="button button-dark" href="/request-quote?basket=1">Request a quote <span aria-hidden="true">↗</span></Link></div>
       ) : (
         <form className="checkout-layout" onSubmit={submit}>
           <div className="checkout-fields">
@@ -94,7 +103,7 @@ export default function CheckoutPage() {
                   <input type="radio" required name="payment_method" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} />
                   <span><b>PayFast</b><small>Secure online payment</small></span><span className="payment-lock">SECURE</span>
                 </label>
-              )) : <p className="payment-warning">PayFast is not currently available from the WooCommerce store. Enable the PayFast gateway in WooCommerce to accept online payments here. You can still <Link href="/request-quote">request a quote</Link>.</p>}
+              )) : <p className="payment-warning">Online payment is currently unavailable. You can still <Link href="/request-quote?basket=1">request a quote for your selected parts</Link>.</p>}
             </section>
           </div>
           <aside className="cart-summary checkout-summary"><span className="eyebrow">Your order</span>
@@ -103,7 +112,7 @@ export default function CheckoutPage() {
             <p>Final delivery and tax amounts are confirmed by WooCommerce before payment.</p>
             {error && <p className="inline-error" role="alert">{error}</p>}
             <button className="button button-copper" type="submit" disabled={busy || payfastMethods.length === 0}>{busy ? "Connecting securely…" : "Continue to PayFast"} <span aria-hidden="true">↗</span></button>
-            <Link className="summary-quote" href="/request-quote">Prefer a quote instead?</Link>
+            <Link className="summary-quote" href="/request-quote?basket=1">Prefer a quote instead?</Link>
           </aside>
         </form>
       )}

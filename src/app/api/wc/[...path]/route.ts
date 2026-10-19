@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { IS_PREVIEW } from "@/lib/store-config";
+import { readStoreJson, requestStore, StoreRequestError } from "@/lib/store-request";
 
-const WORDPRESS_STORE_API = "https://farmeralot.co.za/wp-json/wc/store/v1";
 const FORWARDED_HEADERS = ["Cart-Token", "Nonce"] as const;
 const RESPONSE_HEADERS = ["Cart-Token", "Nonce"] as const;
 
@@ -8,13 +9,16 @@ async function proxyStoreApi(
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ) {
+  if (IS_PREVIEW) return NextResponse.json({ message: "Live orders and payments are disabled in this presentation." }, { status: 409 });
   const { path } = await context.params;
   if (path.some((part) => !/^[a-z0-9-]+$/i.test(part))) {
     return NextResponse.json({ message: "Invalid WooCommerce API path." }, { status: 400 });
   }
 
-  const upstreamUrl = new URL(`${WORDPRESS_STORE_API}/${path.join("/")}`);
-  request.nextUrl.searchParams.forEach((value, key) => upstreamUrl.searchParams.set(key, value));
+  const route = path.join("/");
+  if (!["cart", "cart/add-item", "cart/update-item", "cart/remove-item", "cart/update-customer", "cart/select-shipping-rate", "checkout"].includes(route)) {
+    return NextResponse.json({ message: "Store operation not found." }, { status: 404 });
+  }
   const headers = new Headers({ Accept: "application/json" });
   for (const name of FORWARDED_HEADERS) {
     const value = request.headers.get(name);
@@ -25,16 +29,19 @@ async function proxyStoreApi(
   if (hasBody) headers.set("Content-Type", "application/json");
 
   try {
-    const upstream = await fetch(upstreamUrl, {
+    const body = hasBody ? await request.text() : undefined;
+    if (body && body.length > 32_000) return NextResponse.json({ message: "Request is too large." }, { status: 413 });
+    if (body) { try { JSON.parse(body); } catch { return NextResponse.json({ message: "Invalid request." }, { status: 400 }); } }
+    const query = request.nextUrl.searchParams.toString();
+    const upstream = await requestStore(`wc/store/v1/${route}${query ? `?${query}` : ""}`, {
       method: request.method,
       headers,
-      body: hasBody ? await request.text() : undefined,
+      body,
       cache: "no-store",
     });
-    const response = new NextResponse(await upstream.arrayBuffer(), {
+    const response = NextResponse.json(await readStoreJson<unknown>(upstream), {
       status: upstream.status,
       headers: {
-        "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
         "Cache-Control": "no-store",
       },
     });
@@ -44,10 +51,9 @@ async function proxyStoreApi(
     }
     return response;
   } catch (error) {
-    console.error("WooCommerce Store API request failed.", error);
     return NextResponse.json(
-      { message: "Could not connect to the Farmeralot store. Please try again shortly." },
-      { status: 502 },
+      { message: error instanceof StoreRequestError ? error.message : "Could not connect to the Farmeralot store. Please try again shortly." },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

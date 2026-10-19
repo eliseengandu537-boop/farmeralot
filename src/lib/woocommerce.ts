@@ -1,6 +1,6 @@
-export const STORE_URL =
-  process.env.NEXT_PUBLIC_STORE_URL ?? "https://farmeralot.co.za";
-const API_URL = `${STORE_URL}/wp-json/wc/store/v1`;
+import { IS_PREVIEW } from "@/lib/store-config";
+import { readStoreJson, requestStore, StoreRequestError } from "@/lib/store-request";
+export { STORE_URL } from "@/lib/store-config";
 
 export type StoreImage = {
   id: number;
@@ -33,7 +33,7 @@ export type StoreProduct = {
     currency_minor_unit: number;
   };
   images: StoreImage[];
-  categories: StoreCategory[];
+  categories: Pick<StoreCategory, "id" | "name" | "slug">[];
   is_in_stock: boolean;
   add_to_cart: {
     text: string;
@@ -42,28 +42,45 @@ export type StoreProduct = {
 };
 
 async function storeFetch<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_URL}/${path}`, {
-    next: { revalidate: 180 },
-    headers: { Accept: "application/json" },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Farmeralot catalogue request failed (${response.status}).`);
-  }
-
-  return (await response.json()) as T;
+  const response = await requestStore(`wc/store/v1/${path}`, { cache: "no-store" });
+  if (!response.ok) throw new StoreRequestError("unavailable", response.status);
+  const data = await readStoreJson<T>(response);
+  if (!Array.isArray(data)) throw new StoreRequestError("invalid_response");
+  return data;
 }
 
 export async function getCategories(): Promise<StoreCategory[]> {
+  if (IS_PREVIEW) return (await import("@/data/catalogue-preview.json")).categories;
   return storeFetch<StoreCategory[]>("products/categories?per_page=100");
 }
 
-export async function getProducts(options: {
+type ProductFilters = {
   category?: number;
   search?: string;
+};
+
+async function getPreviewProducts(options: ProductFilters): Promise<StoreProduct[]> {
+  const { products } = await import("@/data/catalogue-preview.json");
+  const words = options.search?.toLowerCase().trim().split(/\s+/).filter(Boolean) ?? [];
+  return products.filter((product) =>
+    (!options.category || product.categories.some((category) => category.id === options.category)) &&
+    words.every((word) => `${product.name} ${product.sku} ${htmlToText(product.description)}`.toLowerCase().includes(word)),
+  );
+}
+
+export async function getPreviewProductCount(options: ProductFilters = {}): Promise<number> {
+  return (await getPreviewProducts(options)).length;
+}
+
+export async function getProducts(options: ProductFilters & {
   perPage?: number;
   page?: number;
 } = {}): Promise<StoreProduct[]> {
+  if (IS_PREVIEW) {
+    const filtered = await getPreviewProducts(options);
+    const start = ((options.page ?? 1) - 1) * (options.perPage ?? 12);
+    return filtered.slice(start, start + (options.perPage ?? 12));
+  }
   const query = new URLSearchParams({
     per_page: String(options.perPage ?? 12),
     page: String(options.page ?? 1),
@@ -77,6 +94,10 @@ export async function getProducts(options: {
 }
 
 export async function getProduct(slug: string): Promise<StoreProduct | null> {
+  if (IS_PREVIEW) {
+    const { products } = await import("@/data/catalogue-preview.json");
+    return products.find((product) => product.slug === slug) ?? null;
+  }
   const products = await storeFetch<StoreProduct[]>(
     `products?slug=${encodeURIComponent(slug)}&per_page=1`,
   );
@@ -86,6 +107,7 @@ export async function getProduct(slug: string): Promise<StoreProduct | null> {
 export async function searchProductsLive(
   search: string,
 ): Promise<StoreProduct[]> {
+  if (IS_PREVIEW) return getProducts({ search, perPage: 5 });
   const stopWords = new Set([
     "about", "and", "for", "from", "have", "help", "how", "need",
     "looking", "find", "part", "parts", "please", "the", "this", "what",
@@ -101,16 +123,7 @@ export async function searchProductsLive(
         search: term,
         per_page: "5",
       });
-      const response = await fetch(`${API_URL}/products?${query.toString()}`, {
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Farmeralot product search failed (${response.status}).`);
-      }
-
-      return (await response.json()) as StoreProduct[];
+      return storeFetch<StoreProduct[]>(`products?${query.toString()}`);
     }),
   );
 
@@ -136,6 +149,7 @@ export function formatPrice(
 
 export function htmlToText(html: string): string {
   return html
+    .replace(/\{loadmoduleid\s+\d+\}/gi, "")
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<\/(p|h[1-6]|li|tr|div|section)>/gi, "\n")
