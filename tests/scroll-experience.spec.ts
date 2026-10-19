@@ -71,37 +71,42 @@ test("motion preferences can change while the page is open", async ({ page }) =>
   await expect(page.locator("html")).toHaveClass(/lenis/);
 });
 
-test("the farm video plays on arrival, remembers pause, and stops under the next card", async ({ page }) => {
+test("the farm video automatically plays, loops, and resumes when its panel returns", async ({ page }) => {
   await page.goto("/");
   const video = page.locator(".service-video");
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState)).toBe(0);
   await video.scrollIntoViewIfNeeded();
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => !element.paused && element.currentTime > 0)).toBe(true);
-  await page.getByRole("button", { name: "Pause farm video" }).click();
-  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
+  await expect(page.locator(".service-video-visual button")).toHaveCount(0);
+  const start = await video.evaluate((element: HTMLVideoElement) => element.currentTime);
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThan(start + 0.3);
+  await video.evaluate((element: HTMLVideoElement) => { element.currentTime = element.duration - 0.25; });
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeLessThan(2);
 
   const thirdPanel = page.locator(".service-panel").nth(2);
   const coverVideo = () => thirdPanel.evaluate((panel) => window.scrollTo({ top: panel.getBoundingClientRect().top + window.scrollY - parseFloat(getComputedStyle(panel).top), behavior: "instant" }));
   await coverVideo();
   await expect(page.locator(".service-panel").first()).toHaveAttribute("inert", "");
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
   await page.locator(".service-stack").evaluate((stack) => window.scrollTo({ top: stack.getBoundingClientRect().top + window.scrollY - 160, behavior: "instant" }));
   await expect(page.locator(".service-panel").first()).not.toHaveAttribute("inert", "");
-  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
-  await page.getByRole("button", { name: "Play farm video" }).click();
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(false);
   await coverVideo();
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
 });
 
-test("the farm video stays still for reduced motion until explicitly played", async ({ page }) => {
+test("the farm video respects changing motion preferences without visible controls", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   const video = page.locator(".service-video");
   await video.scrollIntoViewIfNeeded();
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused && element.readyState === 0)).toBe(true);
-  await page.getByRole("button", { name: "Play farm video" }).click();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await video.scrollIntoViewIfNeeded();
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => !element.paused && element.currentTime > 0)).toBe(true);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
   await page.locator("#categories").scrollIntoViewIfNeeded();
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(true);
 });

@@ -1,13 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 export function ServiceVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const controlRef = useRef<HTMLButtonElement>(null);
-  const intentRef = useRef<"auto" | "play" | "pause">("auto");
-  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -18,9 +15,10 @@ export function ServiceVideo() {
 
     function syncPlayback() {
       if (!video) return;
-      const paused = intentRef.current === "pause" || (reduced.matches && intentRef.current !== "play");
-      if (paused || !visible || document.hidden || panel?.inert) video.pause();
-      else if (video.paused) void video.play().catch(() => { /* Keep the poster and manual play control. */ });
+      const shouldPlay = visible && !reduced.matches && !document.hidden && !panel?.inert;
+      video.autoplay = shouldPlay;
+      if (!shouldPlay) video.pause();
+      else if (video.paused) void video.play().catch(() => { /* Retry when media is ready or the visitor interacts. */ });
     }
 
     const visibility = new IntersectionObserver(([entry]) => {
@@ -34,28 +32,22 @@ export function ServiceVideo() {
     if (panel) covered.observe(panel, { attributes: true, attributeFilter: ["inert"] });
     reduced.addEventListener("change", syncPlayback);
     document.addEventListener("visibilitychange", syncPlayback);
-    if (controlRef.current) controlRef.current.hidden = false;
+    document.addEventListener("pointerup", syncPlayback);
+    document.addEventListener("keydown", syncPlayback);
+    video.addEventListener("canplay", syncPlayback);
 
     return () => {
       visibility.disconnect();
       covered.disconnect();
       reduced.removeEventListener("change", syncPlayback);
       document.removeEventListener("visibilitychange", syncPlayback);
+      document.removeEventListener("pointerup", syncPlayback);
+      document.removeEventListener("keydown", syncPlayback);
+      video.removeEventListener("canplay", syncPlayback);
+      video.autoplay = false;
       video.pause();
     };
   }, []);
-
-  function togglePlayback() {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      intentRef.current = "play";
-      void video.play().catch(() => { /* Autoplay restrictions leave the poster visible. */ });
-    } else {
-      intentRef.current = "pause";
-      video.pause();
-    }
-  }
 
   return (
     <div className="service-visual service-video-visual">
@@ -72,15 +64,9 @@ export function ServiceVideo() {
         height={1024}
         aria-hidden="true"
         tabIndex={-1}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
       >
         <source src="/service-parts.mp4" type="video/mp4" />
       </video>
-      <button ref={controlRef} hidden className="service-video-control" type="button" onClick={togglePlayback} aria-label={playing ? "Pause farm video" : "Play farm video"}>
-        <span aria-hidden="true">{playing ? "Ⅱ" : "▶"}</span>
-        <span>{playing ? "Pause" : "Play"}</span>
-      </button>
       <div className="visual-caption"><span>KEEP YOUR FARM MOVING</span><span aria-hidden="true">↗</span></div>
     </div>
   );

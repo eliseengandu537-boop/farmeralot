@@ -75,7 +75,7 @@ After confirmation, configure server-only `SALES_REP_ROUTES_JSON` with records s
 
 The hero video is `public/farmeralot-background.mp4`; its static poster is `public/farm-poster.jpg`. Replace both when changing the clip. Local catalogue images live in `public/catalogue/` and the public snapshot in `src/data/`. Keep these files with the project so a clean build works.
 
-The first service card uses the supplied harvesting clip, `public/service-parts.mp4`, and its extracted poster, `public/service-parts-poster.webp`. The portrait video keeps its full frame with a soft poster backdrop. It loads when visible, pauses when covered by another sticky card or off screen, and respects reduced motion unless the visitor explicitly presses play.
+The first service card uses the supplied harvesting clip, `public/service-parts.mp4`, and its extracted poster, `public/service-parts-poster.webp`. The portrait video keeps its full frame with a soft poster backdrop. It plays and loops automatically with no visible playback button, pauses when covered by another sticky card or off screen, and automatically resumes when visible again. Reduced-motion visitors see a still frame.
 
 Cards 2 and 3 use `public/service-tractor.webp` and `public/service-farm-truck.webp`. These illustrative vehicle photos were generated with the built-in image generation tool; their prompts are recorded in `design/service-image-prompts.json`. They are not photographs of a Farmeralot fleet. The realistic category PNG illustrations live in `public/category-images/`, with prompts in `design/category-image-prompts.json`.
 
