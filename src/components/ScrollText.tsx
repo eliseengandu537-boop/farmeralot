@@ -57,7 +57,7 @@ export function ScrollText({
     >
       {lines.map((line, lineIndex) => (
         <span className="scroll-text-line" aria-hidden="true" key={`${line}-${lineIndex}`}>
-          {line.split(/\s+/).map((word, index, words) => {
+          {line.split(/\s+/).map((word, index) => {
             const delay = (lineWordOffsets[lineIndex] + index) * 48;
             const highlighted = word.toLowerCase() === normalizedHighlight;
 
@@ -69,7 +69,6 @@ export function ScrollText({
                 >
                   {word}
                 </span>
-                {index < words.length - 1 ? " " : null}
               </span>
             );
           })}

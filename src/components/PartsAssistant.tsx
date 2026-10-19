@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
 
 type Message = {
   role: "user" | "assistant";
@@ -18,6 +19,14 @@ type ProductMatch = {
 type AssistantReply = {
   answer: string;
   products: ProductMatch[];
+};
+
+type QuoteDetails = {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  request: string;
 };
 
 function PartsIcon({ className }: { className?: string }) {
@@ -64,7 +73,7 @@ function isAssistantReply(value: unknown): value is AssistantReply {
 
 const suggestions = [
   "Help me find a bearing",
-  "I need an alternator for my tractor",
+  "I need farm supplies delivered",
 ];
 
 export function PartsAssistant() {
@@ -74,6 +83,17 @@ export function PartsAssistant() {
   const [products, setProducts] = useState<ProductMatch[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [quoteOpen, setQuoteOpen] = useState(false);
+  const [quoteBusy, setQuoteBusy] = useState(false);
+  const [quoteSent, setQuoteSent] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
+  const [quoteDetails, setQuoteDetails] = useState<QuoteDetails>({
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    request: "",
+  });
   const [conversationKey, setConversationKey] = useState(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -137,7 +157,42 @@ export function PartsAssistant() {
     setProducts([]);
     setError("");
     setDraft("");
+    setQuoteOpen(false);
+    setQuoteSent(false);
+    setQuoteError("");
+    setQuoteDetails({ name: "", email: "", phone: "", location: "", request: "" });
     setConversationKey((key) => key + 1);
+  }
+
+  async function submitQuote(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (quoteBusy || quoteSent) return;
+
+    setQuoteBusy(true);
+    setQuoteError("");
+    try {
+      const response = await fetch("/api/quote-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ ...quoteDetails, messages }),
+      });
+      const result: unknown = await response.json();
+      if (!response.ok) {
+        const message =
+          typeof result === "object" &&
+          result !== null &&
+          "error" in result &&
+          typeof result.error === "string"
+            ? result.error
+            : "We couldn't send your request. Please try again.";
+        throw new Error(message);
+      }
+      setQuoteSent(true);
+    } catch (submitError) {
+      setQuoteError(submitError instanceof Error ? submitError.message : "Please try again.");
+    } finally {
+      setQuoteBusy(false);
+    }
   }
 
   return (
@@ -156,7 +211,7 @@ export function PartsAssistant() {
           <header className="assistant-header">
             <div className="assistant-identity">
               <span className="assistant-avatar"><PartsIcon /></span>
-              <span><b id="assistant-title">Farmeralot parts assistant</b><small>AI product finder</small></span>
+              <span><b id="assistant-title">Farmeralot farm assistant</b><small>Products, parts &amp; delivery</small></span>
             </div>
             <div className="assistant-header-actions">
               <button type="button" onClick={resetConversation} aria-label="Start a new chat" title="New chat">↻</button>
@@ -167,8 +222,8 @@ export function PartsAssistant() {
             {messages.length === 0 ? (
               <div className="assistant-welcome">
                 <span className="eyebrow">Here to help</span>
-                <h2>Let’s find<br />the right part.</h2>
-                <p>Tell me a part number, dimensions, or what machine you’re working with.</p>
+                <h2>What does<br />your farm need?</h2>
+                <p>Ask about a part, an everyday farm essential, or getting an order delivered to your farm.</p>
                 <div className="assistant-suggestions">
                   {suggestions.map((suggestion) => (
                     <button type="button" key={suggestion} onClick={() => void sendMessage(suggestion)} disabled={busy}>{suggestion}<span aria-hidden="true">↗</span></button>
@@ -184,19 +239,46 @@ export function PartsAssistant() {
                 {products.length > 0 && (
                   <div className="assistant-product-matches">
                     <span className="eyebrow">Catalogue matches</span>
-                    {products.slice(0, 4).map((product) => (
+                    {products.slice(0, 5).map((product) => (
                       <Link href={`/product/${encodeURIComponent(product.slug)}`} key={product.id} onClick={() => setOpen(false)}>
                         <span><b>{product.name}</b><small>{product.sku || "Part details"}</small></span><span aria-hidden="true">↗</span>
                       </Link>
                     ))}
                   </div>
                 )}
+                {messages.some((message) => message.role === "assistant") && (
+                  <button className="assistant-quote-trigger" type="button" onClick={() => setQuoteOpen((current) => !current)}>
+                    {quoteOpen ? "Close quote details" : "Get your quote"} <span aria-hidden="true">↗</span>
+                  </button>
+                )}
               </div>
+            )}
+            {quoteOpen && (
+              <form className="assistant-quote-form" onSubmit={(event) => void submitQuote(event)}>
+                {quoteSent ? (
+                  <div className="assistant-quote-success" role="status">
+                    <b>Request sent</b>
+                    <span>Thanks. The Farmalot team will follow up about your request.</span>
+                  </div>
+                ) : (
+                  <>
+                    <div><span className="eyebrow">Request a quote</span><h3>Where should we send it?</h3><p>Share your details and the sales team will follow up about the items you discussed.</p></div>
+                    <label>Your name<input name="name" autoComplete="name" required maxLength={120} value={quoteDetails.name} onChange={(event) => setQuoteDetails({ ...quoteDetails, name: event.target.value })} /></label>
+                    <label>Email address<input name="email" type="email" autoComplete="email" required maxLength={254} value={quoteDetails.email} onChange={(event) => setQuoteDetails({ ...quoteDetails, email: event.target.value })} /></label>
+                    <label>Phone number<input name="phone" type="tel" autoComplete="tel" required maxLength={40} value={quoteDetails.phone} onChange={(event) => setQuoteDetails({ ...quoteDetails, phone: event.target.value })} /></label>
+                    <label>Town or delivery area<input name="location" autoComplete="address-level2" required maxLength={120} value={quoteDetails.location} onChange={(event) => setQuoteDetails({ ...quoteDetails, location: event.target.value })} /></label>
+                    <label>What would you like delivered?<textarea name="request" required maxLength={1500} rows={3} value={quoteDetails.request} onChange={(event) => setQuoteDetails({ ...quoteDetails, request: event.target.value })} /></label>
+                    <p className="assistant-quote-privacy">Your contact details are used only to respond to this request. Please don’t include sensitive information.</p>
+                    {quoteError && <p className="assistant-error" role="alert">{quoteError}</p>}
+                    <button className="assistant-quote-submit" type="submit" disabled={quoteBusy}>{quoteBusy ? "Sending request…" : "Send quote request"}</button>
+                  </>
+                )}
+              </form>
             )}
             {error && <p className="assistant-error" role="alert">{error}</p>}
           </div>
           <form className="assistant-composer" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}>
-            <label className="visually-hidden" htmlFor="assistant-input">Ask about a part</label>
+            <label className="visually-hidden" htmlFor="assistant-input">Ask about products, parts, or farm delivery</label>
             <textarea
               id="assistant-input"
               ref={inputRef}
@@ -208,7 +290,7 @@ export function PartsAssistant() {
                   void sendMessage();
                 }
               }}
-              placeholder="Describe the part you need…"
+              placeholder="What does your farm need?"
               maxLength={1000}
               rows={2}
               disabled={busy}
@@ -218,9 +300,9 @@ export function PartsAssistant() {
           <p className="assistant-disclaimer">AI can make mistakes. Confirm fitment with our parts team.</p>
         </section>
       )}
-      <button className={`assistant-launcher${open ? " is-open" : ""}`} type="button" aria-expanded={open} aria-label={open ? "Close parts assistant" : "Open AI parts assistant"} onClick={() => setOpen((current) => !current)}>
+      <button className={`assistant-launcher${open ? " is-open" : ""}`} type="button" aria-expanded={open} aria-label={open ? "Close parts assistant" : "Get your quote"} onClick={() => setOpen((current) => !current)}>
         <span className="assistant-launcher-icon" aria-hidden="true">{open ? "×" : <PartsIcon />}</span>
-        <span>{open ? "Close" : "Ask our AI"}</span>
+        <span>{open ? "Close" : "Get your quote"}</span>
       </button>
     </div>
   );

@@ -7,11 +7,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Farmeralot | Parts that keep you moving",
+    default: "Farmeralot | Farm delivery, parts & essentials",
     template: "%s | Farmeralot",
   },
   description:
-    "Find dependable agricultural and machinery parts with expert support and delivery across South Africa.",
+    "Farm delivery and logistics across South Africa. Find machinery parts, everyday farm essentials, practical support, and delivery to your farm.",
 };
 
 export default function RootLayout({

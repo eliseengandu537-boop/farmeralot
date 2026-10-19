@@ -11,7 +11,7 @@ export default async function QuotePage({
   const body = details
     ? `Hello Farmeralot,\n\nI would like a quote for ${details}.\n\nMy name:\nMy phone number:\nDelivery location:\n`
     : "Hello Farmeralot,\n\nI would like help finding a machinery part.\n\nMachine make and model:\nPart number or description:\nMy name:\nMy phone number:\nDelivery location:\n";
-  const emailLink = `mailto:eliseenweb@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const emailLink = `mailto:eliseeweb@gmail.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   return (
     <main className="page-shell quote-page">
@@ -21,7 +21,7 @@ export default async function QuotePage({
         <div className="quote-form-card"><span className="eyebrow">A real person is ready to help</span><h2>Request a quote</h2>
           <p>{details ? `We’ll help you with: ${details}` : "Give us a few details and continue to the Farmeralot quote form."}</p>
           <a className="button button-copper quote-submit" href={emailLink}>
-            Email eliseenweb@gmail.com <span aria-hidden="true">↗</span>
+            Email eliseeweb@gmail.co.za <span aria-hidden="true">↗</span>
           </a>
           <p className="form-privacy">Opens your email app with your part details ready to send to our team.</p>
           <a className="quote-online-link" href={`https://farmeralot.co.za/request-quote/${details ? `?part=${encodeURIComponent(details)}` : ""}`} target="_blank" rel="noreferrer">
