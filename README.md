@@ -16,6 +16,17 @@ Open `http://localhost:3000`.
 
 Set `NEXT_PUBLIC_STORE_URL` in `.env.local` to the WordPress store URL when using a different backend. Product images are loaded from that host.
 
+## AI parts assistant
+
+The floating parts assistant searches the live WooCommerce catalogue and asks OpenAI to explain possible matches. It avoids claiming that a part fits a machine or inventing prices/stock; customers should confirm fitment with the parts team.
+
+1. Create an API key in your OpenAI account at <https://platform.openai.com/api-keys>.
+2. Add it to the root `.env.local` file as `OPENAI_API_KEY=...` (never put it in a `NEXT_PUBLIC_` variable or send it in chat).
+3. Restart the Next.js development server.
+
+The key stays in the server-side `/api/assistant` route. Without the key the assistant displays a setup message and does not call OpenAI. OpenAI usage is billed to the account that owns the key.
+The route applies a small in-process request limit for development. Before public deployment, add a persistent rate limit at the hosting/edge layer to protect your API budget across multiple server instances.
+
 ## Commerce setup
 
 - The product catalogue is read from WooCommerce Store API.
