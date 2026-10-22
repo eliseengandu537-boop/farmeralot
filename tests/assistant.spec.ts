@@ -1,10 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-test("quote button collects a demo lead, previews the admin email, and retains edits when closed", async ({ page }) => {
+test("product enquiry button collects a demo lead, previews the admin email, and retains edits when closed", async ({ page }) => {
   const external: string[] = [];
   await page.route(/api\.(openai|resend)\.com/, (route) => { external.push(route.request().url()); return route.abort(); });
   await page.goto("/");
-  await page.getByRole("button", { name: "Get your quote", exact: true }).click();
+  const whatsapp = page.locator(".assistant-whatsapp").getByRole("link", { name: /Get in chat with us/ });
+  await expect(whatsapp).toBeVisible();
+  await expect(whatsapp).toContainText("+27 83 630 3818");
+  await expect(whatsapp).toHaveAttribute("href", "https://wa.me/27836303818?text=Hi%20Farmeralot%2C%20please%20help%20me%20find%20a%20product.");
+  await page.getByRole("button", { name: "What product are you looking for?", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Farmeralot assistant" });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText("No emails sent");
@@ -17,8 +21,8 @@ test("quote button collects a demo lead, previews the admin email, and retains e
   await dialog.getByLabel("Company or farm (optional)").fill("Edited Example Farm");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole("button", { name: "Get your quote", exact: true })).toBeFocused();
-  await page.getByRole("button", { name: "Get your quote", exact: true }).click();
+  await expect(page.getByRole("button", { name: "What product are you looking for?", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "What product are you looking for?", exact: true }).click();
   await expect(dialog.getByLabel("Company or farm (optional)")).toHaveValue("Edited Example Farm");
   await dialog.getByRole("button", { name: "Preview lead email" }).click();
   await expect(dialog.getByText("Your demo lead is ready.")).toBeVisible();
@@ -44,7 +48,17 @@ test("mobile assistant validates chat answers, permits skipping company, and fit
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await page.getByRole("button", { name: "Get your quote", exact: true }).click();
+  const whatsapp = page.locator(".assistant-whatsapp").getByRole("link", { name: /Get in chat with us/ });
+  const launcher = page.getByRole("button", { name: "What product are you looking for?", exact: true });
+  for (const control of [whatsapp, launcher]) {
+    const box = await control.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(48);
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    expect(box!.y + box!.height).toBeLessThan(844);
+  }
+  await launcher.click();
+  await expect(whatsapp).toBeHidden();
   const dialog = page.getByRole("dialog", { name: "Farmeralot assistant" });
   const input = dialog.getByLabel("Message the Farmeralot assistant");
   for (const answer of ["Bearings", "Cape Town, Western Cape", "Demo Customer"]) { await input.fill(answer); await input.press("Enter"); }

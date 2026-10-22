@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SALES_EMAIL } from "@/lib/store-config";
+import { WhatsAppLink } from "@/components/WhatsAppLink";
 
 export function Footer() {
   return (
@@ -11,6 +12,7 @@ export function Footer() {
             <Image className="brand-logo" src="/catalogue/farmeralot-logo.webp" alt="Farmeralot" width={220} height={95} />
           </Link>
           <p>Farm delivery and logistics for machinery parts and everyday essentials, delivered to farms around South Africa.</p>
+          <WhatsAppLink />
         </div>
         <div className="footer-links">
           <p className="footer-label">Explore</p>

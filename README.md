@@ -51,11 +51,13 @@ Live catalogue requests have timeouts and recoverable error screens. Basket and 
 
 ## Assistant and lead presentation
 
-The floating **Get your quote** button opens the Farmeralot assistant on every page. `ASSISTANT_MODE=demo` is the default, independently of the store's catalogue mode. The presentation is clearly labelled: replies follow a guided sequence, do not call live AI, and never send emails or save leads. No API key is required for this demo.
+The floating **What product are you looking for?** button opens the Farmeralot assistant on every page. **Get in chat with us** opens WhatsApp to **+27 83 630 3818** with a draft product enquiry. WhatsApp is also available in the footer and on the enquiry page, where product names and SKUs are included when supplied. The visitor reviews and sends the message in WhatsApp.
+
+`ASSISTANT_MODE=demo` is the default, independently of the store's catalogue mode. The presentation is clearly labelled: replies follow a guided sequence, do not call live AI, and never send emails or save leads. No API key is required for this demo.
 
 Presentation walkthrough:
 
-1. Click **Get your quote**, then describe the part or farm supply needed.
+1. Click **What product are you looking for?**, then describe the part or farm supply needed.
 2. Enter a town/suburb and province, name, optional company/farm, email and phone number. Use sample details.
 3. Review and edit the populated form, then click **Preview lead email**.
 4. Show the customer, company, location, contact details, enquiry, summary and routing information in the resulting email preview. It is addressed to `eliseenweb@gmail.com` by default.
