@@ -97,7 +97,7 @@ export function PartsAssistant({ demo }: { demo: boolean }) {
       {!review && <form className="assistant-composer" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}><label className="visually-hidden" htmlFor="assistant-input">Message the Farmeralot assistant</label><textarea id="assistant-input" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void sendMessage(); } }} placeholder={demo ? demoSteps[step]?.placeholder : "What does your farm need?"} maxLength={demo ? leadLimits[demoSteps[step]?.field || "request"] : 1000} rows={2} disabled={busy} /><button type="submit" aria-label="Send message" disabled={busy || !draft.trim()}>↑</button></form>}
       <p className="assistant-disclaimer">{demo ? "Use sample details. This demo does not use live AI." : "AI can make mistakes. Our team confirms fitment and availability."}</p>
     </section>
-    <div className="assistant-whatsapp" hidden={open}><WhatsAppLink /></div>
+    <div className="assistant-whatsapp" hidden={open}><WhatsAppLink iconOnly /></div>
     <button ref={launcherRef} className={`assistant-launcher${open ? " is-open" : ""}`} type="button" aria-expanded={open} aria-controls={open ? "parts-assistant" : undefined} aria-label={open ? "Close parts assistant" : "What product are you looking for?"} onClick={() => setOpen((current) => !current)}><span className="assistant-launcher-icon" aria-hidden="true">{open ? "×" : <PartsIcon />}</span><span>{open ? "Close" : "What product are you looking for?"}</span><span aria-hidden="true">{open ? "" : "↗"}</span></button>
   </div>;
 }

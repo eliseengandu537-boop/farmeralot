@@ -9,6 +9,8 @@
 .whatsapp-contact strong { font-size: 15px; font-weight: 600; line-height: 1.4; }
 .whatsapp-contact small { font-size: 12px; line-height: 1.5; }
 .whatsapp-contact > span:last-child { margin-left: auto; }
+.whatsapp-contact-icon { justify-content: center; width: 56px; height: 56px; min-height: 56px; padding: 0; border-radius: 50%; }
+.whatsapp-contact-icon > svg { flex-basis: 30px; width: 30px; height: 30px; }
 .footer-brand .whatsapp-contact { margin-top: 20px; }
 .site-footer { padding-bottom: 170px; }
 .quote-whatsapp { margin-top: 24px; }

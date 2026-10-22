@@ -6,7 +6,7 @@ test("product enquiry button collects a demo lead, previews the admin email, and
   await page.goto("/");
   const whatsapp = page.locator(".assistant-whatsapp").getByRole("link", { name: /Get in chat with us/ });
   await expect(whatsapp).toBeVisible();
-  await expect(whatsapp).toContainText("+27 83 630 3818");
+  await expect(whatsapp).toHaveAccessibleName("Get in chat with us on WhatsApp at +27 83 630 3818");
   await expect(whatsapp).toHaveAttribute("href", "https://wa.me/27836303818?text=Hi%20Farmeralot%2C%20please%20help%20me%20find%20a%20product.");
   await page.getByRole("button", { name: "What product are you looking for?", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Farmeralot assistant" });

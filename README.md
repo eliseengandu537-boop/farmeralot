@@ -51,7 +51,7 @@ Live catalogue requests have timeouts and recoverable error screens. Basket and 
 
 ## Assistant and lead presentation
 
-The floating **What product are you looking for?** button opens the Farmeralot assistant on every page. **Get in chat with us** opens WhatsApp to **+27 83 630 3818** with a draft product enquiry. WhatsApp is also available in the footer and on the enquiry page, where product names and SKUs are included when supplied. The visitor reviews and sends the message in WhatsApp.
+The floating **What product are you looking for?** button opens the Farmeralot assistant on every page. The round **WhatsApp icon** opens WhatsApp to **+27 83 630 3818** with a draft product enquiry. Labelled **Get in chat with us** links are also available in the footer and on the enquiry page, where product names and SKUs are included when supplied. The visitor reviews and sends the message in WhatsApp.
 
 `ASSISTANT_MODE=demo` is the default, independently of the store's catalogue mode. The presentation is clearly labelled: replies follow a guided sequence, do not call live AI, and never send emails or save leads. No API key is required for this demo.
 
