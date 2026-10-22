@@ -4,10 +4,10 @@ import { Reveal } from "@/components/Reveal";
 import { ScrollText } from "@/components/ScrollText";
 import { ServiceVideo } from "@/components/ServiceVideo";
 
-function ServicePhoto({ src, alt, caption, href, label }: { src: string; alt: string; caption: string; href: string; label: string }) {
+function ServicePhoto({ src, alt, caption, href, label, delivery = false }: { src: string; alt: string; caption: string; href: string; label: string; delivery?: boolean }) {
   return (
-    <Link className="service-visual service-photo-visual" href={href} aria-label={label}>
-      <Image src={src} alt={alt} fill sizes="(max-width: 899px) 88vw, 70vw" />
+    <Link className={`service-visual service-photo-visual${delivery ? " service-delivery-visual" : ""}`} href={href} aria-label={label}>
+      <Image src={src} alt={alt} fill sizes="(max-width: 899px) 88vw, 42vw" />
       <div className="visual-caption"><span>{caption}</span><span aria-hidden="true">↗</span></div>
     </Link>
   );
@@ -49,7 +49,7 @@ export function ServiceStory() {
             <div className="service-tags"><span>Nationwide delivery</span><span>Rural destinations</span></div>
             <Link className="text-link" href="/about">See what we offer <span aria-hidden="true">↗</span></Link>
           </div>
-          <ServicePhoto src="/service-farm-truck.webp" alt="A farm truck carrying wooden crates through a rural farm gate" caption="FROM SOURCING TO YOUR FARM GATE" href="/about" label="Learn about our farm delivery service" />
+          <ServicePhoto src="/service-delivery-truck.webp" alt="Orange delivery truck with a black Farmeralot-branded cargo box" caption="FROM SOURCING TO YOUR FARM GATE" href="/about" label="Learn about our farm delivery service" delivery />
         </article>
       </div>
     </section>
