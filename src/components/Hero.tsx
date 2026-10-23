@@ -42,7 +42,7 @@ export function Hero() {
       <div className="hero-atmosphere" aria-hidden="true" />
       <div className="hero-copy">
         <span className="eyebrow eyebrow-light"><span className="eyebrow-dot" /> Fast parts for farmlands</span>
-        <ScrollText id="hero-heading" as="h1" className="hero-title" lines={["Keep your", "world turning."]} highlightWord="world" />
+        <ScrollText id="hero-heading" as="h1" className="hero-title" lines={["Keep Your", "World Turning"]} highlightWord="World" />
         <p>From the right machinery part to your everyday farm essentials. Practical support. Nationwide delivery. Right to your farm gate.</p>
         <div className="hero-actions">
           <Link className="button button-copper" href="/shop">Explore the catalogue <span aria-hidden="true">↗</span></Link>
