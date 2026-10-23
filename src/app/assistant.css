@@ -4,13 +4,13 @@
 .whatsapp-contact { display: inline-flex; align-items: center; gap: 12px; min-height: 60px; max-width: 100%; padding: 12px 17px; border: 1px solid #ffffff40; border-radius: 16px; background: #176b43; color: #fff; box-shadow: 0 8px 26px #102b1924; text-decoration: none; transition: background .2s, transform .2s; }
 .whatsapp-contact:hover { background: #115535; transform: translateY(-2px); }
 .whatsapp-contact:focus-visible { outline: 3px solid var(--copper-light); outline-offset: 4px; }
-.whatsapp-contact > svg { flex: 0 0 26px; width: 26px; height: 26px; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.whatsapp-contact > svg { flex: 0 0 26px; width: 26px; height: 26px; fill: currentColor; stroke: none; }
 .whatsapp-contact > span:first-of-type { display: flex; flex-direction: column; gap: 4px; }
 .whatsapp-contact strong { font-size: 15px; font-weight: 600; line-height: 1.4; }
 .whatsapp-contact small { font-size: 12px; line-height: 1.5; }
 .whatsapp-contact > span:last-child { margin-left: auto; }
-.whatsapp-contact-icon { justify-content: center; width: 56px; height: 56px; min-height: 56px; padding: 0; border-radius: 50%; }
-.whatsapp-contact-icon > svg { flex-basis: 30px; width: 30px; height: 30px; }
+.whatsapp-contact-icon { justify-content: center; width: 56px; height: 56px; min-height: 56px; padding: 0; border-radius: 50%; background: #128c4a; box-shadow: 0 6px 20px #102b192b; }
+.whatsapp-contact-icon:hover { background: #0e753d; }
 .footer-brand .whatsapp-contact { margin-top: 20px; }
 .site-footer { padding-bottom: 170px; }
 .quote-whatsapp { margin-top: 24px; }

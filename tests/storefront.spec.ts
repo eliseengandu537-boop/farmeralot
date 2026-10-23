@@ -17,7 +17,7 @@ test("main routes render from the saved catalogue with no live-store requests", 
     const response = await page.goto(path);
     expect(response?.ok(), path).toBe(true);
     await expect(page.locator("main")).toBeVisible();
-    await expect(page.locator(".preview-notice")).toContainText("No live orders or payments");
+    await expect(page.locator(".preview-notice")).toHaveCount(0);
     await expect(page.locator("nextjs-portal").getByText("Runtime Error", { exact: true })).toHaveCount(0);
   }
   expect(remoteStoreRequests).toEqual([]);

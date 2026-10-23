@@ -29,7 +29,6 @@ export default function RootLayout({
       <body>
         <StorefrontProvider>
           <ScrollExperience />
-          {IS_PREVIEW && <div className="preview-notice" role="note"><b>Presentation preview</b><span>Saved catalogue · No live orders or payments</span></div>}
           <Header />
           {children}
           <Footer />

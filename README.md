@@ -32,7 +32,7 @@ Suggested walkthrough:
 
 Preparing an email does **not** send it. The visitor must send it from their email app. No customer contact details are stored by this form. Only basket product IDs and quantities are saved in this browser.
 
-The preview banner stays visible. The saved products have no checkout prices, so the UI uses “Price on request.” Preview mode cannot create orders, charge payments, or access account history. The proxy also rejects direct order requests. Account and policy pages link to the official live site for the current information.
+The storefront has no global presentation banner. The saved products have no checkout prices, so the UI uses “Price on request.” Preview mode cannot create orders, charge payments, or access account history. The proxy also rejects direct order requests. Account and policy pages link to the official live site for the current information.
 
 ## Live store connection
 
